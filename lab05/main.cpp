@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 
     std::vector<std::shared_ptr<Object>> objects;
 	//Sphere
-	auto sphere_geometry_data = geometry_generators::generate_sphere_geometry_data(0.5f, 20, 20);
+	auto sphere_geometry_data = geometry_generators::generate_sphere_geometry_data(0.25f, 20, 20);
 	auto sphere_geometry = std::make_shared<ES2Geometry>(sphere_geometry_data.first, sphere_geometry_data.second);
 	sphere_geometry->set_type(GL_LINE_LOOP);
 	auto sphere_material = std::make_shared<ES2ConstantMaterial>();
@@ -75,26 +75,33 @@ int main(int argc, char **argv)
 	hour_rectangle_material->set_emission_color(glm::vec4{ 0.0f, 1.0f, 1.0f, 1.0f });
 
 	//OBJECTS
-	auto center = std::make_shared<Mesh>(sphere_geometry, sphere_material, glm::vec3{0.0f, 0.0f, 0.0f});
+	auto center = std::make_shared<Mesh>(sphere_geometry, sphere_material, glm::vec3{ 0.0f, 0.0f, 0.0f });
 	center->set_scale(glm::vec3{ 0.25f });
-	
-	//HANDS
+
+	auto hour_hand_center = std::make_shared<Mesh>(sphere_geometry, sphere_material, glm::vec3{0.0f, 0.0f, 0.0f});
+	hour_hand_center->set_scale(glm::vec3{ 0.25f });
 	auto hour_hand = std::make_shared<Mesh>(rectangle_geometry, rectangle_material, glm::vec3{CLOCK_RADIUS / 2.0f - 0.5f, 0.0f, 0.0f });
 	hour_hand->set_scale(glm::vec3{ 0.08f });
 	hour_hand->set_scale_x(HOUR_RADIUS);
-	
+	hour_hand_center->add_child(hour_hand);
 
+	auto min_hand_center = std::make_shared<Mesh>(sphere_geometry, sphere_material, glm::vec3{ 0.0f, 0.0f, 0.0f });
+	min_hand_center->set_scale(glm::vec3{ 0.25f });
 	auto min_hand = std::make_shared<Mesh>(rectangle_geometry, rectangle_material, glm::vec3{ CLOCK_RADIUS / 2.0f - 0.15f, 0.0f, 0.0f });
 	min_hand->set_scale(glm::vec3{ 0.08f });
 	min_hand->set_scale_x(MIN_RADIUS);
 	min_hand->set_scale_y(0.03f);
-	
+	min_hand_center->add_child(min_hand);
 
+
+	auto sec_hand_center = std::make_shared<Mesh>(sphere_geometry, sphere_material, glm::vec3{ 0.0f, 0.0f, 0.0f });
+	sec_hand_center->set_scale(glm::vec3{ 0.25f });
 	auto sec_hand = std::make_shared<Mesh>(rectangle_geometry, rectangle_material, glm::vec3{ CLOCK_RADIUS / 2.0f, 0.0f, 0.0f });
 	sec_hand->set_scale(glm::vec3{ 0.08f });
 	sec_hand->set_scale_x(SEC_RADIUS);
 	sec_hand->set_scale_y(0.01f);
-	
+	sec_hand_center->add_child(sec_hand);
+
 	//HOURS AND QUATERS
 	//Rectangle
 	std::vector<unsigned int> rhomb_indices;
@@ -148,11 +155,11 @@ int main(int argc, char **argv)
 		{
 			auto quat = std::make_shared<Mesh>(rhomb_geometry, rectangle_material, glm::vec3{x, y, -0.05f });
 			quat->set_scale(glm::vec3{ 0.4f });
-			objects.push_back(quat);
+			center->add_child(quat);
 		}
 		auto rhomb = std::make_shared<Mesh>(rhomb_geometry, rhomb_material, glm::vec3{x, y, -0.15f });
 		rhomb->set_scale(glm::vec3{ 0.2f });
-		objects.push_back(rhomb);
+		center->add_child(rhomb);
 	}
 
 	//CIRCLES
@@ -163,15 +170,15 @@ int main(int argc, char **argv)
 		float y = sinf(angle) * CLOCK_RADIUS;
 		auto circle = std::make_shared<Mesh>(circle_geometry, circle_material, glm::vec3{ x, y, 0.0f });
 		circle->set_scale(glm::vec3{ 0.2f });
-		objects.push_back(circle);
+		center->add_child(circle);
 	}
 
 	//
 	objects.push_back(center);
-	objects.push_back(hour_hand);
-	objects.push_back(min_hand);
-	objects.push_back(sec_hand);
-
+	objects.push_back(hour_hand_center);
+	objects.push_back(min_hand_center);
+	objects.push_back(sec_hand_center);
+	center->set_rotation_z(1.5f);
     // TODO
     auto scene = std::make_shared<Scene>(objects);
     auto root = scene->get_root();
@@ -179,7 +186,7 @@ int main(int argc, char **argv)
 	
 
     auto &camera = scene->get_camera();
-    camera.set_z(7.0f);
+    camera.set_z(3.0f);
 
     window->set_on_key([&](int key) {
         switch (key) {
@@ -207,21 +214,21 @@ int main(int argc, char **argv)
 
 		time_t now = time(0);
 		tm* local_time = localtime(&now);
-		int hour = local_time->tm_hour;
-		int min = local_time->tm_min;
-		int sec = local_time->tm_sec;
+		int hour = 3 + local_time->tm_hour;
+		int min = 15 +  local_time->tm_min;
+		int sec = 15 +  local_time->tm_sec;
 
 		float local_hour = (float) hour / (float) 12 * 2 * (float) M_PI;
 		float local_min = (float) min / (float) 60 * 2 * (float) M_PI;
 		float local_sec = (float) sec / (float) 60 * 2 * (float) M_PI;
 
-		hour_hand->set_position(glm::vec3 {cosf(local_hour), sinf(local_hour), 0.0f});
-		min_hand->set_position(glm::vec3{ cosf(local_min) * MIN_RADIUS / 2.0f, sinf(local_min) * MIN_RADIUS / 2.0f, 0.0f });
-		sec_hand->set_position(glm::vec3{ cosf(local_sec) * SEC_RADIUS / 2.0f, sinf(local_sec) * SEC_RADIUS / 2.0f, 0.0f });
+		//hour_hand->set_position(glm::vec3 {cosf(local_hour), sinf(local_hour), 0.0f});
+		//min_hand->set_position(glm::vec3{ cosf(local_min) * MIN_RADIUS / 2.0f, sinf(local_min) * MIN_RADIUS / 2.0f, 0.0f });
+		//sec_hand->set_position(glm::vec3{ cosf(local_sec) * SEC_RADIUS / 2.0f, sinf(local_sec) * SEC_RADIUS / 2.0f, 0.0f });
 
-		hour_hand->set_rotation_z(local_hour);
-		min_hand->set_rotation_z(local_min);
-		sec_hand->set_rotation_z(local_sec);
+		hour_hand_center->set_rotation_z(local_hour);
+		min_hand_center->set_rotation_z(local_min);
+		sec_hand_center->set_rotation_z(local_sec);
 		root->set_rotation_y(root->get_rotation_y() + 0.005f);
         renderer.render();
     }
