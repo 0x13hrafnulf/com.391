@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 {
     using namespace aur;
 
-    auto window = std::make_shared<SDLWindow>("aur", 0, 0);
+    auto window = std::make_shared<SDLWindow>("aur", 1280, 768);
 
     auto[plane1_indices, plane1_vertices] = geometry_generators::generate_plane_geometry_data(100, 100, 2, 2);
     auto plane1_geometry = std::make_shared<ES2Geometry>(plane1_indices, plane1_vertices);
